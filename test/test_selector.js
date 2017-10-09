@@ -2,7 +2,7 @@
 
 import chai from 'chai'
 import {  createSelector, createSelectorCreator, defaultMemoize, createStructuredSelector  } from '../src/index'
-import {  initSelectorFunctions, createTerseSelector } from '../src/index.js'
+import {  initSelectorFunctions, createSelectorShorthand } from '../src/index.js'
 import {  default as lodashMemoize  } from 'lodash.memoize'
 
 const assert = chai.assert
@@ -416,7 +416,7 @@ suite('selector', () => {
     assert.equal(selector.resultFunc, lastFunction)
   })
 
-  test('test terse selector', () => {
+  test('createSelectorShorthand', () => {
     let val = 0
     initSelectorFunctions({
       greet(param) {
@@ -428,7 +428,7 @@ suite('selector', () => {
       }
     })
     let calls = 0
-    const greetSelector = createTerseSelector(({ greet }) => () => {
+    const greetSelector = createSelectorShorthand(({ greet }) => () => {
       calls++
       return greet
     })
@@ -440,7 +440,7 @@ suite('selector', () => {
     assert.equal(greetSelector({ who: 'you' }), 'hello you')
     assert.equal(2, calls)
 
-    const incrementGreet = createTerseSelector(({ greet, increment }) => () => {
+    const incrementGreet = createSelectorShorthand(({ greet, increment }) => () => {
       calls++
       return greet + ' ' + increment
     })
@@ -453,5 +453,26 @@ suite('selector', () => {
     assert.equal(4, calls)
     assert.equal(incrementGreet({ by: 100  }), 'hello undefined 102')
     assert.equal(5, calls)
+  })
+
+  test('createSelectorShorthand todos example', () => {
+    initSelectorFunctions({
+      todo({ todos }, { todoId }) {
+        return todos[todoId]
+      },
+      todosUser({ users, todos }, { todoId }) {
+        return users[todos[todoId].userId]
+      }
+    })
+    const formattedTodo = createSelectorShorthand(
+      ({ todo: { id, task, done }, todosUser: { id: userId, firstname, lastname } }) => () => {
+        return { id, task, done, userId, name: firstname + ' ' + lastname }
+      })
+    const todo = formattedTodo(
+      {
+        todos: { 1:{ id: 1, task:'eat', userId: 1, done: false } },
+        users: { 1: { id: 1, firstname:'John', lastname: 'Doe' } }
+      }, { todoId: 1 })
+    assert.deepEqual(todo, { id: 1, done: false, task: 'eat', userId: 1, name: 'John Doe' })
   })
 })
