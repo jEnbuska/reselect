@@ -457,15 +457,17 @@ suite('selector', () => {
 
   test('createSelectorShorthand todos example', () => {
     initSelectorFunctions({
-      todo({ todos }, { todoId }) {
-        return todos[todoId]
+      todo(state, props) {
+        return state.todos[props.todoId]
       },
-      todosUser({ users, todos }, { todoId }) {
-        return users[todos[todoId].userId]
+      todosUser(state, props) {
+        return state.users[state.todos[props.todoId].userId]
       }
     })
     const formattedTodo = createSelectorShorthand(
-      ({ todo: { id, task, done }, todosUser: { id: userId, firstname, lastname } }) => () => {
+      ({ todo, todosUser }) => () => {
+        const { id, task, done } = todo
+        const { id: userId, firstname, lastname } = todosUser
         return { id, task, done, userId, name: firstname + ' ' + lastname }
       })
     const todo = formattedTodo(
