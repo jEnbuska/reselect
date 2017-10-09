@@ -2,6 +2,7 @@
 
 import chai from 'chai'
 import {  createSelector, createSelectorCreator, defaultMemoize, createStructuredSelector  } from '../src/index'
+import {  initSelectorFunctions, createTerseSelector } from '../src/index.js'
 import {  default as lodashMemoize  } from 'lodash.memoize'
 
 const assert = chai.assert
@@ -413,5 +414,44 @@ suite('selector', () => {
       lastFunction
     )
     assert.equal(selector.resultFunc, lastFunction)
+  })
+
+  test('test terse selector', () => {
+    let val = 0
+    initSelectorFunctions({
+      greet(param) {
+        return 'hello ' +param.who
+      },
+      increment(param) {
+        val += param.by
+        return val
+      }
+    })
+    let calls = 0
+    const greetSelector = createTerseSelector(({ greet }) => () => {
+      calls++
+      return greet
+    })
+    assert.equal(0, calls)
+    assert.equal(greetSelector({ who: 'me' }), 'hello me')
+    assert.equal(1, calls)
+    assert.equal(greetSelector({ who: 'me' }), 'hello me')
+    assert.equal(1, calls)
+    assert.equal(greetSelector({ who: 'you' }), 'hello you')
+    assert.equal(2, calls)
+
+    const incrementGreet = createTerseSelector(({ greet, increment }) => () => {
+      calls++
+      return greet + ' ' + increment
+    })
+    assert.equal(2, calls)
+    assert.equal(incrementGreet({ who:'world', by: 1 }), 'hello world 1')
+    assert.equal(3, calls)
+    assert.equal(incrementGreet({ who:'world', by: 1 }), 'hello world 2')
+    assert.equal(4, calls)
+    assert.equal(incrementGreet({ who:'world', by: 0 }), 'hello world 2')
+    assert.equal(4, calls)
+    assert.equal(incrementGreet({ by: 100  }), 'hello undefined 102')
+    assert.equal(5, calls)
   })
 })

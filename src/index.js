@@ -87,6 +87,34 @@ export function createSelectorCreator(memoize, ...memoizeOptions) {
 
 export const createSelector = createSelectorCreator(defaultMemoize)
 
+const { defineProperty } = Object
+const select = { functions: {}, proxy: {} }
+let access = []
+export function initSelectorFunctions(obj) {
+  for(const name in obj) {
+    select.functions[name] = obj[name]
+    defineProperty(select.proxy, name, {
+      get() {
+        access.push(name)
+      }
+    })
+  }
+  return { select, access }
+}
+const { keys, values, assign } = Object
+export function createTerseSelector(func) {
+  func(select.proxy)
+  const selectors = access.reduce((acc, name) => {
+    acc[name] = select.functions[name]
+    return acc
+  }, {})
+  access = []
+  return createSelector(values(selectors), function (...results) {
+    const obj = keys(selectors).reduce((acc, name, i) => assign(acc, { [name]: results[i] }), {})
+    return func(obj)()
+  })
+}
+
 export function createStructuredSelector(selectors, selectorCreator = createSelector) {
   if (typeof selectors !== 'object') {
     throw new Error(
