@@ -86,30 +86,31 @@ export function createSelectorCreator(memoize, ...memoizeOptions) {
 }
 
 export const createSelector = createSelectorCreator(defaultMemoize)
-
-const { defineProperty } = Object
+const { keys, values, assign, defineProperty } = Object
 const select = { functions: {}, proxy: {} }
-let access = []
+let accessed = []
+
 export function initSelectorFunctions(obj) {
   for(const name in obj) {
     select.functions[name] = obj[name]
-    defineProperty(select.proxy, name, {
+    defineProperty(select.proxy, name, {  // creates a way to detect which objects values a terse selector uses
       get() {
-        access.push(name)
+        accessed.push(name)
+        return {}
       }
     })
   }
-  return { select, access }
 }
-const { keys, values, assign } = Object
-export function createTerseSelector(func) {
-  func(select.proxy)
-  const selectors = access.reduce((acc, name) => {
+
+export function createSelectorShorthand(func) {
+  func(select.proxy) // select.proxy pushes the accessed functions to 'accessed' array
+  const selectors = accessed.reduce((acc, name) => {
     acc[name] = select.functions[name]
     return acc
   }, {})
-  access = []
+  accessed = []
   return createSelector(values(selectors), function (...results) {
+    // assume results are in the same order as previously accessed values
     const obj = keys(selectors).reduce((acc, name, i) => assign(acc, { [name]: results[i] }), {})
     return func(obj)()
   })
